@@ -87,10 +87,9 @@ v_Ci0 = _mm256_fmadd_pd(v_a_ki, v_Bk0, v_Ci0);
 _mm256_storeu_pd(&Ci[j], v_Ci0);
 ...
 ```
-
-    * _mm256_set1_pd(a_ki) --- fills a ymm register with the variable a_ki on every position.
-    * _mm256_loadu_pd(&Bk[j]) --- copies 4 double variables starting at &B[j] into a ymm register.
-    * _mm256_fmadd_pd(a, b, c) --- does the element-wise calculation $$a \cdot b + c$$ where a, b, c are vectors and returns it.
+  - _mm256_set1_pd(a_ki) --- fills a ymm register with the variable a_ki on every position.
+  - _mm256_loadu_pd(&Bk[j]) --- copies 4 double variables starting at &B[j] into a ymm register.
+  - _mm256_fmadd_pd(a, b, c) --- does the element-wise calculation $$a \cdot b + c$$ where a, b, c are vectors and returns it.
 
 ### 3.3. BLAS Integration (`blas`)
 To establish a performance ceiling, the pipeline was implemented using the Basic Linear Algebra Subprograms (BLAS) API, delegating all calculations to assembly-optimized kernels (`cblas_dgemm`, `cblas_dgemv`, `cblas_daxpy`). Specific BLAS flags were utilized to signal the symmetric nature of the target matrices, further pruning the operation tree.
