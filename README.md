@@ -114,4 +114,3 @@ To ensure exact reproducibility, benchmarking was performed on two distinct serv
 ## 7. Conclusion
 
 This project successfully demonstrates the severe performance implications of both hardware-aware programming and algorithmic architecture. While memory access patterns, cache locality, and SIMD vectorization can optimize execution times by multiple orders of magnitude on modern CPUs, the mathematical reduction to $O(N^2)$ proves that algorithmic complexity remains the ultimate dictator of scaling limits. Bridging the gap between pure mathematics and hardware execution pipelines is critical for modern High-Performance Computing.
-```
