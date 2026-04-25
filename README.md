@@ -40,9 +40,57 @@ As expected, this implementation exhibits severe cache thrashing, recording an e
 This variant implements low-level optimizations aimed at maximizing cache locality and CPU pipeline efficiency on Haswell architectures:
 
 1. **Register Caching:** Aggressively caching partial sums in CPU registers to minimize L1 memory accesses.
+```c
+for(int j = 0; j < N; j++) {
+    register double sum = 0;
+    for(int k = 0; k < N; k++) {
+        sum += A[i * N + k] * B[k * N + j];
+    }
+    C[i * N + j] = sum;
+}
+```
+
 2. **Loop Unrolling:** Based on the L1 cache line size (64 bytes = 8 double-precision floats), the inner loops are unrolled by a factor of 8 to improve instruction throughput.
+```c
+for(int j = 0; j < N; j++) {
+    register double sum = 0;
+    for(int k = 0; k < N; k += 2) {
+        sum += A[i * N + k] * B[k * N + j];
+        sum += A[i * N + k + 1] * B[(k + 1) * N + j];
+        ...
+    }
+    C[i * N + j] = sum;
+}
+```
+
 3. **Loop Reordering:** Transitioning from the standard `i-j-k` iteration to a `k-i-j` (sequential-constant-sequential) memory access pattern, drastically reducing TLB misses and cache eviction.
+```c
+for(int k = 0; k < N; k++) {
+    for(int i = 0; i < N; i++) {
+        const double a_ki = A[k * N + i];
+        const double *Bi = &B[k * N];
+        double *Ci = &C[i * N];
+        for(int j = 0; j < N; j++) {
+            *Ci += a_ki * *Bi
+            Ci++; Bi++;
+        }
+    }
+}
+```
+
 4. **AVX2 & FMA Vectorization:** Leveraging 256-bit YMM registers to process 4 double-precision floats concurrently via `_mm256_fmadd_pd` (Fused Multiply-Add).
+```c
+__m256d v_a_ki = _mm256_set1_pd(a_ki);
+__m256d v_Bk0 = _mm256_loadu_pd(&Bk[j]);
+__m256d v_Ci0 = _mm256_loadu_pd(&Ci[j]);
+v_Ci0 = _mm256_fmadd_pd(v_a_ki, v_Bk0, v_Ci0);
+_mm256_storeu_pd(&Ci[j], v_Ci0);
+...
+```
+
+    * _mm256_set1_pd(a_ki) --- fills a ymm register with the variable a_ki on every position.
+    * _mm256_loadu_pd(&Bk[j]) --- copies 4 double variables starting at &B[j] into a ymm register.
+    * _mm256_fmadd_pd(a, b, c) --- does the element-wise calculation $$a \cdot b + c$$ where a, b, c are vectors and returns it.
 
 ### 3.3. BLAS Integration (`blas`)
 To establish a performance ceiling, the pipeline was implemented using the Basic Linear Algebra Subprograms (BLAS) API, delegating all calculations to assembly-optimized kernels (`cblas_dgemm`, `cblas_dgemv`, `cblas_daxpy`). Specific BLAS flags were utilized to signal the symmetric nature of the target matrices, further pruning the operation tree.
